@@ -1,25 +1,35 @@
 import streamlit as st
-from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-st.title("Sentiment Analysis with Customer Reviews")
+
+# Title
+st.title("Sentiment Analysis with Customer Reviews (Improved Accuracy)")
+
+# Input
 user_input = st.text_area("Enter a customer review:")
+
+# Analysis
 if st.button("Analyze"):
     if user_input:
-        blob = TextBlob(user_input)
-        sentiment_score = blob.sentiment.polarity
+        analyzer = SentimentIntensityAnalyzer()
+        scores = analyzer.polarity_scores(user_input)
+        compound_score = scores['compound']
 
-        if sentiment_score > 0:
+        # Classify sentiment
+        if compound_score >= 0.05:
             sentiment = "Positive"
-        elif sentiment_score < 0:
+        elif compound_score <= -0.05:
             sentiment = "Negative"
         else:
             sentiment = "Neutral"
 
-        st.write(f"Sentiment: {sentiment}")
-        st.write(f"Polarity Score: {sentiment_score}")
+        # Output
+        st.write(f"**Sentiment:** {sentiment}")
+        st.write(f"**Compound Score:** {compound_score:.3f}")
+        st.write(f"**Breakdown:** {scores}")
 
-        # Generate and display a word cloud
+        # Word Cloud
         wordcloud = WordCloud(width=800, height=400, background_color="white").generate(user_input)
         fig, ax = plt.subplots()
         ax.imshow(wordcloud, interpolation='bilinear')
