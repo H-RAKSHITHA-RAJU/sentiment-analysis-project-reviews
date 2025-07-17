@@ -1,37 +1,51 @@
+# app.py
+
 import streamlit as st
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import joblib
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# Title
-st.title("Sentiment Analysis with Customer Reviews (Improved Accuracy)")
+# --- Load the Trained Model ---
+# We load the model once at the start of the app
+# The @st.cache_resource decorator ensures this function is only run once
+@st.cache_resource
+def load_model():
+    model = joblib.load('sentiment_model.pkl')
+    return model
 
-# Input
-user_input = st.text_area("Enter a customer review:")
+model = load_model()
 
-# Analysis
-if st.button("Analyze"):
+# --- Streamlit App Interface ---
+st.title("Custom Sentiment Analysis App")
+st.write("This app uses a model trained on a specific customer review dataset.")
+
+user_input = st.text_area("Enter a customer review to analyze:")
+
+if st.button("Analyze Sentiment"):
     if user_input:
-        analyzer = SentimentIntensityAnalyzer()
-        scores = analyzer.polarity_scores(user_input)
-        compound_score = scores['compound']
+        # 1. Use our trained model to make a prediction
+        # The model expects a list or iterable of texts, so we pass [user_input]
+        prediction = model.predict([user_input])
+        probability = model.predict_proba([user_input])
 
-        # Classify sentiment
-        if compound_score >= 0.05:
-            sentiment = "Positive"
-        elif compound_score <= -0.05:
-            sentiment = "Negative"
-        else:
-            sentiment = "Neutral"
+        sentiment = prediction[0]
+        confidence = probability.max()
 
-        # Output
-        st.write(f"**Sentiment:** {sentiment}")
-        st.write(f"**Compound Score:** {compound_score:.3f}")
-        st.write(f"**Breakdown:** {scores}")
+        # Display the results
+        st.write(f"**Predicted Sentiment:** {sentiment.capitalize()}")
+        st.write(f"**Confidence:** {confidence:.2f}")
 
-        # Word Cloud
-        wordcloud = WordCloud(width=800, height=400, background_color="white").generate(user_input)
-        fig, ax = plt.subplots()
-        ax.imshow(wordcloud, interpolation='bilinear')
-        ax.axis("off")
-        st.pyplot(fig)
+        # 2. Display Word Cloud (optional, but nice)
+        st.write("---")
+        st.write("### Word Cloud for the Review")
+        try:
+            wordcloud = WordCloud(width=800, height=400, background_color="white").generate(user_input)
+            fig, ax = plt.subplots()
+            ax.imshow(wordcloud, interpolation='bilinear')
+            ax.axis("off")
+            st.pyplot(fig)
+        except ValueError:
+            st.write("Could not generate a word cloud for this input.")
+
+    else:
+        st.write("Please enter a review to analyze.")
